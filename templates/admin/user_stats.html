@@ -1,0 +1,72 @@
+{% extends "admin/change_list.html" %}
+{% load humanize %}
+{% block content_title %}
+    <h1> Статистика пользователей </h1>
+{% endblock %}
+{% block result_list %}
+
+
+<div class="results">
+    <fieldset class="module aligned">
+        <div class="form-row">
+            <div>
+                <label class="required">Всего пользователей:</label>
+                <div class="readonly"> {{ summary_total.total | intcomma }} </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label class="required">Всего клиентов:</label>
+                <div class="readonly"> {{ summary_total.clients | intcomma }} </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label class="required">Всего мастеров:</label>
+                <div class="readonly"> {{ summary_total.masters | intcomma }} </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label class="required">Активных мастеров:</label>
+                <div class="readonly"> {{ summary_total.active | intcomma }} </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label class="required">Неактивных мастеров:</label>
+                <div class="readonly"> {{ summary_total.inactive | intcomma }} </div>
+            </div>
+        </div>
+    </fieldset>
+</div>
+
+<style>
+    .form-row {
+        overflow: hidden;
+        padding: 10px;
+        font-size: 13px;
+        border-bottom: 1px solid #eee;
+    }
+    .aligned label {
+        display: block;
+        padding: 4px 10px 0 0;
+        float: left;
+        width: 160px;
+        word-wrap: break-word;
+    }
+    label {
+        font-weight: normal;
+        color: #666;
+        font-size: 13px;
+    }
+    .aligned label + p, .aligned label + div.help, .aligned label + div.readonly {
+        padding: 6px 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 170px;
+    }
+</style>
+
+{% endblock %}
+{% block pagination %}{% endblock %}
