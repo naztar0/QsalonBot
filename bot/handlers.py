@@ -495,18 +495,17 @@ def order_requests_amount(message: types.Message, callback: types.CallbackQuery,
 @utils.logger_middleware(Log.INLINE_BUTTON, is_callback=True)
 def master_accept_order(message: types.Message, callback: types.CallbackQuery, user: models.User, data):
     if user.balance == 0:
-        answer(message, user.text('master_no_balance'))
-        return
+        return answer(message, user.text('master_no_balance'))
     with suppress(ApiTelegramException):
         bot.edit_message_reply_markup(message.chat.id, message.message_id)
     try:
         order = models.Order.objects.get(id=data)
     except models.Order.DoesNotExist:
-        answer(message, user.text('client_canceled_order'), reply_to_message_id=message.message_id)
-        return
+        return answer(message, user.text('client_canceled_order'), reply_to_message_id=message.message_id)
+    if models.Request.objects.filter(order=order, master=user).count():
+        return answer(message, user.text('master_order_exists'), reply_to_message_id=message.message_id)
     if order.master:
-        answer(message, user.text('client_has_master'), reply_to_message_id=message.message_id)
-        return
+        return answer(message, user.text('client_has_master'), reply_to_message_id=message.message_id)
     request = models.Request.objects.create(order=order, master=user, message_id=message.message_id)
     username = '@' + utils.esc_md(user.username) if user.username else ''
     address = utils.get_address(user.location.x, user.location.y, 'ru') or "недоступно"

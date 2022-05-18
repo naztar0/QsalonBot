@@ -393,7 +393,7 @@ def get_location(latitude: float, longitude: float, lang='en', pretty=0, no_anno
 
 def get_city(latitude: float, longitude: float, lang='en'):
     location = get_location(latitude, longitude, lang)
-    if not location:
+    if not location or not location.get('country'):
         return
     country, _ = models.Country.objects.get_or_create(name=location.get('country'),
                                                       defaults={'name': location.get('country')})
