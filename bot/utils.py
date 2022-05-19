@@ -184,6 +184,14 @@ class MediaGroup:
         if photo: self.photo.append(photo)
         if video: self.video.append(video)
 
+    def trim(self):
+        if self.prefer_photo:
+            self.video_limit = self.photo_limit - len(self.photo)
+        else:
+            self.photo_limit = self.video_limit - len(self.video)
+        self.photo = self.photo[:self.photo_limit]
+        self.video = self.video[:self.video_limit]
+
     @classmethod
     def from_model(cls, portfolio: models.Portfolio):
         return {'text': portfolio.text, 'photo': json.loads(portfolio.photo), 'video': json.loads(portfolio.video)}
@@ -194,11 +202,8 @@ class MediaGroup:
 
     @property
     def to_dict(self):
-        if self.prefer_photo:
-            self.video_limit = self.photo_limit - len(self.photo)
-        else:
-            self.photo_limit = self.video_limit - len(self.video)
-        return {'text': self.text, 'photo': self.photo[:self.photo_limit], 'video': self.video[:self.video_limit]}
+        self.trim()
+        return {'text': self.text, 'photo': self.photo, 'video': self.video}
 
     @property
     def to_json(self):
@@ -218,6 +223,7 @@ def send_media_group(chat_id: int, media: MediaGroup, caption=None, emoji_decode
             return misc.bot.send_message(chat_id, text)
     else:
         medias_wrapped = []
+        media.trim()
         if media.photo:
             medias_wrapped += [InputMediaPhoto(media.photo[0], caption=text)] \
                             + [InputMediaPhoto(x) for x in media.photo[1:]]

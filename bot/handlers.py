@@ -37,22 +37,19 @@ def start_handler(message: types.Message, user: models.User):
     answer(message, 'Now you are the client')
 
 
-@bot.message_handler(content_types=['text', 'location'])
+@bot.message_handler(content_types=['text'])
 @utils.user_handler
 def distribute_state_text_handler(message: types.Message, user: models.User):
     if not user.state:
         main_text_handler(message, user)
         return
     state_funcs = {
-        utils.States.NEW_LOCATION: save_location,
         utils.States.SUBSCRIPTIONS: save_categories,
         utils.States.PORTFOLIO_TEXT: portfolio_set_text,
         utils.States.PORTFOLIO_MEDIA: portfolio_set_media,
         utils.States.NEW_ORDER_CATEGORY: client_no_text,
-        utils.States.NEW_ORDER_LOCATION: client_location,
         utils.States.NEW_ORDER_DATE: client_no_text,
         utils.States.NEW_ORDER_TIME: client_no_text,
-        utils.States.NEW_ORDER_FORM_TEXT_MEDIA: client_text_media,
     }
     if state_funcs.get(user.state):
         state_funcs[user.state](message, user)
@@ -71,6 +68,20 @@ def media_handler(message: types.Message, user: models.User):
         state_funcs[user.state](message, user)
     else:
         answer(message, user.text('unknown_action'))
+
+
+@bot.message_handler(content_types=['location'])
+@utils.user_handler
+def distribute_state_location_handler(message: types.Message, user: models.User):
+    if not user.state:
+        main_text_handler(message, user)
+        return
+    state_funcs = {
+        utils.States.NEW_LOCATION: save_location,
+        utils.States.NEW_ORDER_LOCATION: client_location,
+    }
+    if state_funcs.get(user.state):
+        state_funcs[user.state](message, user)
 
 
 @bot.callback_query_handler(lambda callback: True)
@@ -198,8 +209,6 @@ def save_categories(message, user: models.User):
 @utils.reset_state_checker('master_profile', ButtonSet.MASTER_2)
 @utils.logger_middleware(Log.REPLY_BUTTON)
 def save_location(message, user: models.User):
-    if not message.location:
-        return
     user.city = utils.get_city(message.location.latitude, message.location.longitude)
     user.location.x, user.location.y = message.location.latitude, message.location.longitude
     user.is_active = True
@@ -340,6 +349,8 @@ def client_text_media(message: types.Message, user: models.User):
 
 @utils.logger_middleware(Log.REPLY_BUTTON)
 def orders_history(message: types.Message, user: models.User):
+    if not user.type:
+        return answer(message, user.text('orders_history_empty'))
     buttons = [[x.id, f"{x.subcategory.title} - {x.date.strftime('%d.%m')} в {', '.join(json.loads(x.times))}"]
                for x in models.Order.objects.filter(**{user.type.lower(): user}).order_by('-created')[:10]]
     answer(message, user.text('orders_history') if buttons else user.text('orders_history_empty'),
