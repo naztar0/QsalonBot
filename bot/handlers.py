@@ -50,6 +50,7 @@ def distribute_state_text_handler(message: types.Message, user: models.User):
         utils.States.NEW_ORDER_CATEGORY: client_no_text,
         utils.States.NEW_ORDER_DATE: client_no_text,
         utils.States.NEW_ORDER_TIME: client_no_text,
+        utils.States.NEW_ORDER_FORM_TEXT_MEDIA: client_text_media,
     }
     if state_funcs.get(user.state):
         state_funcs[user.state](message, user)
