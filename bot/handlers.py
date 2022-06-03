@@ -529,7 +529,8 @@ def master_accept_order(message: types.Message, callback: types.CallbackQuery, u
                              portfolio_chat=preferences.Settings.portfolio_chat_link,
                              portfolio_id=user.portfolio.message_id),
                      reply_markup=ButtonSet(ButtonSet.INL_CLIENT_ACCEPT_ORDER, request.id), parse_mode='Markdown')
-    answer(message, user.text('master_accepted_order_reply').format(client_id=order.client.user_id))
+    username = '@' + utils.esc_md(order.client.username) if order.client.username else ''
+    answer(message, user.text('master_accepted_order_reply').format(client_id=order.client.user_id, client_username=username))
 
 
 # noinspection PyUnusedLocal
@@ -548,8 +549,10 @@ def client_accept_order(message: types.Message, callback: types.CallbackQuery, u
     order.message_id = request.message_id
     order.save()
     username = '@' + utils.esc_md(user.username) if user.username else ''
-    bot.send_message(order.master.user_id, order.master.text('client_accepted_order').format(client_id=user.user_id, client_username=username), parse_mode='Markdown')
-    answer(message, order.master.text('client_accepted_order_reply').format(master_id=order.master.user_id))
+    bot.send_message(order.master.user_id, order.master.text('client_accepted_order')
+                     .format(client_id=user.user_id, client_username=username), parse_mode='Markdown')
+    username = '@' + utils.esc_md(order.master.username) if order.master.username else ''
+    answer(message, order.master.text('client_accepted_order_reply').format(master_id=order.master.user_id, master_username=username))
 
 
 # noinspection PyUnusedLocal
