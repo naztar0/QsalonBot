@@ -265,14 +265,14 @@ def user_handler(function):
                                    user_id=message.from_user.id,
                                    defaults={'user_id': message.from_user.id,
                                              'username': message.from_user.username,
-                                             'first_name': emoji.demojize(message.from_user.first_name),
-                                             'last_name': emoji.demojize(message.from_user.last_name)})
+                                             'first_name': emoji.demojize(message.from_user.first_name or ''),
+                                             'last_name': emoji.demojize(message.from_user.last_name or '')})
         if not created:
             if user.is_banned:
                 return
             user.username = message.from_user.username
-            user.first_name = message.from_user.first_name
-            user.last_name = message.from_user.last_name
+            user.first_name = emoji.demojize(message.from_user.first_name or '')
+            user.last_name = emoji.demojize(message.from_user.last_name or '')
             user.save()
         kwargs['user'] = user
         kwargs['created'] = created
