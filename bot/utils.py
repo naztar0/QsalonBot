@@ -2,6 +2,7 @@ import json
 import hmac
 import traceback
 import requests
+import emoji
 from math import cos, radians
 from time import sleep, time
 from datetime import datetime, timedelta
@@ -264,8 +265,8 @@ def user_handler(function):
                                    user_id=message.from_user.id,
                                    defaults={'user_id': message.from_user.id,
                                              'username': message.from_user.username,
-                                             'first_name': message.from_user.first_name,
-                                             'last_name': message.from_user.last_name})
+                                             'first_name': emoji.demojize(message.from_user.first_name),
+                                             'last_name': emoji.demojize(message.from_user.last_name)})
         if not created:
             if user.is_banned:
                 return
