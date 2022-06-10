@@ -225,7 +225,7 @@ class RequestAdmin(admin.ModelAdmin):
 
 
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['created', 'user', 'amount', 'currency']
+    list_display = ['created', 'user_id_custom', 'amount', 'currency']
     list_per_page = 25
 
     search_fields = ['user']
