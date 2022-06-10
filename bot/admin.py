@@ -170,12 +170,26 @@ class SubcategoryAdmin(admin.ModelAdmin):
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['created', 'client', 'master', 'subcategory', 'city', 'date', 'times']
+    list_display = ['created', 'client_custom', 'master_custom', 'subcategory', 'city', 'date', 'times']
     list_per_page = 25
     date_hierarchy = 'created'
 
     list_filter = ['city', 'subcategory__category']
     search_fields = ['subcategory']
+
+    def client_custom(self, obj):
+        if obj.client:
+            return format_html(f'<a href="/bot/user/?q={obj.client.user_id}">{obj.client.user_id}</a>')
+        else:
+            return '-'
+    client_custom.short_description = 'Клиент'
+
+    def master_custom(self, obj):
+        if obj.master:
+            return format_html(f'<a href="/bot/user/?q={obj.master.user_id}">{obj.master.user_id}</a>')
+        else:
+            return '-'
+    master_custom.short_description = 'Мастер'
 
     def has_add_permission(self, *args, **kwargs):
         return False
@@ -216,6 +230,13 @@ class TransactionAdmin(admin.ModelAdmin):
 
     search_fields = ['user']
     list_filter = ['currency']
+
+    def user_id_custom(self, obj):
+        if obj.user:
+            return format_html(f'<a href="/bot/user/?q={obj.user.user_id}">{obj.user.user_id}</a>')
+        else:
+            return '-'
+    user_id_custom.short_description = 'ID пользователя'
 
     def has_add_permission(self, *args, **kwargs):
         return False
