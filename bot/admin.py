@@ -1,6 +1,6 @@
 from json import loads
 from django.contrib import admin
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Count, Q, QuerySet, Sum
 from django.utils.html import format_html
 from django.contrib.auth.models import User as DjangoUser, Group as DjangoGroup
 from django.template.defaultfilters import truncatewords
@@ -204,7 +204,8 @@ class OrderAdmin(admin.ModelAdmin):
 class RequestAdmin(admin.ModelAdmin):
     list_display = ['created', 'order_custom', 'master']
     list_per_page = 25
-
+    date_hierarchy = 'created'
+    list_filter = ['master__categories__category']
     search_fields = ['order']
 
     def order_custom(self, obj):
@@ -343,7 +344,7 @@ class UserStatsAdmin(StatsAdmin):
     change_list_template = 'admin/user_stats.html'
     date_hierarchy = 'created'
 
-    list_filter = ['city', 'city__country']
+    list_filter = ['categories__category', 'city', 'city__country']
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)
@@ -356,7 +357,8 @@ class UserStatsAdmin(StatsAdmin):
             'clients': Count('user_id', Q(type=types.User.CLIENT)),
             'masters': Count('user_id', Q(type=types.User.MASTER)),
             'active': Count('user_id', Q(type=types.User.MASTER, is_active=True)),
-            'inactive': Count('user_id', Q(type=types.User.MASTER, is_active=False))
+            'inactive': Count('user_id', Q(type=types.User.MASTER, is_active=False)),
+            'balance': Sum('balance'),
         }
         response.context_data['summary_total'] = dict(
             qs.aggregate(**metrics)

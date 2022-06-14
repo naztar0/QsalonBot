@@ -453,7 +453,8 @@ def client_choose_time(message: types.Message, callback: types.CallbackQuery, us
     user.update_state_data({'times': sorted(times)})
     message.reply_markup.keyboard[misc.times.index(data) // 2][misc.times.index(data) % 2] = \
         types.InlineKeyboardButton(f"{'✅' if new else ''} {data}", callback_data=utils.set_callback(utils.CallbackFuncs.CHOOSE_TIME, data))
-    bot.edit_message_reply_markup(message.chat.id, message.message_id, reply_markup=message.reply_markup)
+    with suppress(ApiTelegramException):
+        bot.edit_message_reply_markup(message.chat.id, message.message_id, reply_markup=message.reply_markup)
 
 
 # noinspection PyUnusedLocal
@@ -518,6 +519,12 @@ def master_accept_order(message: types.Message, callback: types.CallbackQuery, u
         return answer(message, user.text('master_order_exists'), reply_to_message_id=message.message_id)
     if order.master:
         return answer(message, user.text('client_has_master'), reply_to_message_id=message.message_id)
+    try:
+        bot.send_chat_action(order.client.user_id, 'typing')
+    except ApiTelegramException:
+        return answer(message, user.text('client_canceled_order'), reply_to_message_id=message.message_id)
+    user.balance -= 1
+    user.save()
     request = models.Request.objects.create(order=order, master=user, message_id=message.message_id)
     username = '@' + utils.esc_md(user.username) if user.username else ''
     address = utils.get_address(user.location.x, user.location.y, 'ru') or "недоступно"
@@ -549,8 +556,9 @@ def client_accept_order(message: types.Message, callback: types.CallbackQuery, u
     order.message_id = request.message_id
     order.save()
     username = '@' + utils.esc_md(user.username) if user.username else ''
-    bot.send_message(order.master.user_id, order.master.text('client_accepted_order')
-                     .format(client_id=user.user_id, client_username=username), parse_mode='Markdown')
+    with suppress(ApiTelegramException):
+        bot.send_message(order.master.user_id, order.master.text('client_accepted_order')
+                         .format(client_id=user.user_id, client_username=username), parse_mode='Markdown')
     username = '@' + utils.esc_md(order.master.username) if order.master.username else ''
     answer(message, order.master.text('client_accepted_order_reply').format(master_id=order.master.user_id, master_username=username))
 
@@ -588,10 +596,11 @@ def order_delete(message: types.Message, callback: types.CallbackQuery, user: mo
         return
     with suppress(ApiTelegramException):
         bot.edit_message_reply_markup(message.chat.id, message.message_id)
-    if user.type == User.CLIENT:
-        if order.master:
-            bot.send_message(order.master.user_id, order.master.text('client_deleted_order').format(client_id=user.user_id), parse_mode='Markdown')
-    else:
-        bot.send_message(order.client.user_id, order.master.text('master_deleted_order').format(master_id=user.user_id), parse_mode='Markdown')
+    with suppress(ApiTelegramException):
+        if user.type == User.CLIENT:
+            if order.master:
+                bot.send_message(order.master.user_id, order.master.text('client_deleted_order').format(client_id=user.user_id), parse_mode='Markdown')
+        else:
+            bot.send_message(order.client.user_id, order.master.text('master_deleted_order').format(master_id=user.user_id), parse_mode='Markdown')
     order.delete()
     answer(message, user.text('order_deleted'))
