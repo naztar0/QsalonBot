@@ -412,17 +412,20 @@ class OrderStatsAdmin(StatsAdmin):
 
 class RequestStatsAdmin(StatsAdmin):
     change_list_template = 'admin/request_stats.html'
+    date_hierarchy = 'created'
+    list_filter = ['order__city']
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)
-
-        summary = []
-        requests = models.Request.objects.filter(created__month=timezone.now().month)
+        try:
+            qs: QuerySet = response.context_data['cl'].queryset
+        except (AttributeError, KeyError):
+            return response
+        metrics = []
         for cat in models.Category.objects.all():
-            summary.append({'title': cat.title,
-                            'total': requests.filter(order__subcategory__category=cat).count()})
-        response.context_data['summary'] = summary
-        response.context_data['month'] = timezone.now().strftime('%m.%Y')
+            metrics.append({'title': cat.title,
+                            **qs.aggregate(total=Count('id', Q(order__subcategory__category=cat)))})
+        response.context_data['summary'] = metrics
         return response
 
 
