@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from contextlib import suppress
 from django.conf import settings
 from django.db.models import Func, ExpressionWrapper, FloatField
+from django.contrib.gis.geos import Point
 from preferences import preferences
 from telebot.types import ReplyKeyboardMarkup as RKM, InlineKeyboardMarkup as IKM
 from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, CallbackQuery, InputMediaPhoto, InputMediaVideo
@@ -294,8 +295,9 @@ def logger_middleware(type_, content=None, is_callback=False):
                 button = None
                 if is_callback:
                     callback = get_instance(args, CallbackQuery)
-                    key = callback.message.reply_markup.to_dict()['inline_keyboard']
-                    button = [res[0] for res in [[button['text'] for button in row if button.get('callback_data') == callback.data] for row in key] if res][0]
+                    if callback.message.reply_markup:
+                        key = callback.message.reply_markup.to_dict()['inline_keyboard']
+                        button = [res[0] for res in [[button['text'] for button in row if button.get('callback_data') == callback.data] for row in key] if res][0]
                 models.Log.objects.create(user=user, type=type_, content=content or button or message.text)
             if function.__name__ == 'decorator':
                 expected = kwargs
@@ -367,7 +369,8 @@ def distinct(obj, key):
         if attr not in uniq:
             result.append(item)
             uniq.append(attr)
-    return result
+    ids = [x.id for x in result]
+    return obj.model.objects.filter(id__in=ids)
 
 
 def esc_md(s):
@@ -474,7 +477,7 @@ def bulk_mailing(order, data):
     masters = models.User.objects.\
         annotate(location_x=ExpressionWrapper(Func('location', function='ST_X'), output_field=FloatField()),
                  location_y=ExpressionWrapper(Func('location', function='ST_Y'), output_field=FloatField())).\
-        filter(type=User.MASTER, categories=order.subcategory, is_active=True,
+        filter(type=User.MASTER, categories=order.subcategory, is_active_master=True,
                location_x__lte=a, location_x__gte=d, location_y__lte=c, location_y__gte=b)
     price = ''
     for i in range(3):
@@ -498,11 +501,23 @@ def bulk_mailing(order, data):
             sleep(.05)
 
 
-def way_for_pay_request_purchase(user_id, amount):
+def save_order(user):
+    data = user.get_state_data()
+    user.reset_state()
+    order = models.Order.objects.create(client=user, subcategory_id=data['sub_id'], location=Point(data['x'], data['y']),
+                                        date=datetime.fromtimestamp(data['date']), times=json.dumps(data['times']),
+                                        city=get_city(data['x'], data['y']))
+    misc.bot.send_message(user.user_id, user.text('order_created'), parse_mode='Markdown', reply_markup=ButtonSet(ButtonSet.CLIENT))
+    bulk_mailing(order, data)
+
+
+def way_for_pay_request_purchase(user_id, amount, client=False):
     date = int(time())
+    params = '?client=1' if client else ''
+    title = 'Активация учетной записи' if client else 'Пополнение баланса'
     order_reference = f'{date}_{user_id}'
     secret = settings.WAY_FOR_PAY_SECRET.encode('utf-8')
-    str_signature = f'{settings.WAY_FOR_PAY_MERCHANT_ID};{misc.way_for_pay_merchant_domain_name};{order_reference};{date};{amount};UAH;Пополнение баланса;1;{amount}'.encode('utf-8')
+    str_signature = f'{settings.WAY_FOR_PAY_MERCHANT_ID};{misc.way_for_pay_merchant_domain_name};{order_reference};{date};{amount};UAH;{title};1;{amount}'.encode('utf-8')
     hash_signature = hmac.new(secret, str_signature, 'MD5').hexdigest()
     res = requests.post(misc.way_for_pay_url, json={
         'transactionType': 'CREATE_INVOICE',
@@ -512,17 +527,38 @@ def way_for_pay_request_purchase(user_id, amount):
         'merchantDomainName': misc.way_for_pay_merchant_domain_name,
         'merchantTransactionSecureType': 'AUTO',
         'merchantSignature': hash_signature,
-        'serviceUrl': settings.WAY_FOR_PAY_SERVICE_URL,
+        'serviceUrl': settings.WAY_FOR_PAY_SERVICE_URL + params,
         'orderReference': order_reference,
         'orderDate': date,
         'amount': amount,
         'currency': 'UAH',
-        'productName': ['Пополнение баланса'],
+        'productName': [title],
         'productPrice': [amount],
         'productCount': [1],
     })
     response = json.loads(res.text)
     if response['reason'] == 'Ok':
         return response['invoiceUrl']
+    else:
+        return False, response['reason']
+
+
+def way_for_pay_request_refund(transaction: models.Transaction):
+    secret = settings.WAY_FOR_PAY_SECRET.encode('utf-8')
+    str_signature = f'{settings.WAY_FOR_PAY_MERCHANT_ID};{transaction.reference};{transaction.amount};{transaction.currency}'.encode('utf-8')
+    hash_signature = hmac.new(secret, str_signature, 'MD5').hexdigest()
+    res = requests.post(misc.way_for_pay_url, json={
+        'transactionType': 'REFUND',
+        'merchantAccount': settings.WAY_FOR_PAY_MERCHANT_ID,
+        'orderReference': transaction.reference,
+        'amount': transaction.amount,
+        'currency': transaction.currency,
+        'comment': 'Возврат денег',
+        'merchantSignature': hash_signature,
+        'apiVersion': 1,
+    })
+    response = json.loads(res.text)
+    if response['reason'] == 'Ok':
+        return True
     else:
         return False, response['reason']

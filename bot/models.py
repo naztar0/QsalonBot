@@ -19,7 +19,8 @@ class User(models.Model):
     location = models.PointField('Локация', geography=True, default=Point(0, 0))
     city = models.ForeignKey('City', models.CASCADE, verbose_name='Город', default=None, null=True)
     balance = models.PositiveIntegerField('Баланс', default=0)
-    is_active = models.BooleanField('Активен', default=False)
+    is_active_master = models.BooleanField('Активен мастер', default=False)
+    is_active_client = models.BooleanField('Активен клиент', default=False)
     is_banned = models.BooleanField('Бан', default=False)
     language = i18n.default
     # service only
@@ -170,6 +171,8 @@ class Transaction(models.Model):
     user = models.ForeignKey(User, models.CASCADE, verbose_name='Мастер')
     amount = models.PositiveIntegerField('Сумма')
     currency = models.CharField('Валюта', max_length=16)
+    reference = models.CharField(max_length=64)
+    refund = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.id)
@@ -196,6 +199,7 @@ class Settings(Preferences):
     portfolio_chat_link = models.URLField('Ссылка на чат портфолио', max_length=64, default='-')
     media_chat_id = models.BigIntegerField('ID чата медиа', default=0)
     portfolio_chat_id = models.BigIntegerField('ID чата портфолио', default=0)
+    client_freeze_amount = models.PositiveIntegerField('Сумма списания с клиента, грн', default=0)
 
     def __str__(self):
         return 'Настройки'

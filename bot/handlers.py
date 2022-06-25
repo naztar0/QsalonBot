@@ -1,9 +1,7 @@
-# import logging
 import json
 from datetime import datetime
 from contextlib import suppress
 from preferences import preferences
-from django.contrib.gis.geos import Point
 from telebot import types
 from telebot.apihelper import ApiTelegramException
 from bot import utils, misc, models
@@ -212,7 +210,7 @@ def save_categories(message, user: models.User):
 def save_location(message, user: models.User):
     user.city = utils.get_city(message.location.latitude, message.location.longitude)
     user.location.x, user.location.y = message.location.latitude, message.location.longitude
-    user.is_active = True
+    user.is_active_master = True
     user.save()
     if user.get_state_data().get('register'):
         answer(message, user.text('master_registered_demo'), reply_markup=ButtonSet(ButtonSet.MASTER_2))
@@ -246,14 +244,21 @@ def save_portfolio(message, user: models.User):
     answer(message, user.text('master_registered_completely') if data.get('register') else user.text('saved'), reply_markup=ButtonSet(ButtonSet.MASTER_2))
 
 
-def save_order(message, user):
-    data = user.get_state_data()
-    user.reset_state()
-    order = models.Order.objects.create(client=user, subcategory_id=data['sub_id'], location=Point(data['x'], data['y']),
-                                        date=datetime.fromtimestamp(data['date']), times=json.dumps(data['times']),
-                                        city=utils.get_city(data['x'], data['y']))
-    answer(message, user.text('order_created'), reply_markup=ButtonSet(ButtonSet.CLIENT))
-    utils.bulk_mailing(order, data)
+def client_activation(message, user):
+    pay_link = utils.way_for_pay_request_purchase(user.user_id, preferences.Settings.client_freeze_amount, True)
+    if isinstance(pay_link, tuple):
+        answer(message, f"Error: {pay_link[1]}", pm=False)
+        return
+    key = types.InlineKeyboardMarkup()
+    key.add(types.InlineKeyboardButton("Активировать", url=pay_link))
+    answer(message, user.text('client_pay').format(amount=preferences.Settings.client_freeze_amount), reply_markup=key)
+
+
+def new_order(message, user):
+    if user.is_active_client:
+        utils.save_order(user)
+    else:
+        client_activation(message, user)
 
 
 @utils.reset_state_checker('start_master', ButtonSet.MASTER_1)
@@ -337,8 +342,7 @@ def client_location(message: types.Message, user: models.User):
 @utils.reset_state_checker('start_client', ButtonSet.CLIENT)
 def client_text_media(message: types.Message, user: models.User):
     if message.text == misc.next_button:
-        save_order(message, user)
-        return
+        return new_order(message, user)
     if message.text:
         if len(message.text) > 600:
             answer(message, user.text('text_too_long'))
@@ -478,7 +482,8 @@ def client_choose_price(message: types.Message, callback: types.CallbackQuery, u
     price_flags ^= data
     user.update_state_data({'price': price_flags, 'photo': [], 'video': []})
     args = ('✅ ' if price_flags & 2 ** x else '' for x in range(3))
-    bot.edit_message_reply_markup(message.chat.id, message.message_id, reply_markup=ButtonSet(ButtonSet.INL_PRICE, args))
+    with suppress(ApiTelegramException):
+        bot.edit_message_reply_markup(message.chat.id, message.message_id, reply_markup=ButtonSet(ButtonSet.INL_PRICE, args))
 
 
 # noinspection PyUnusedLocal
@@ -555,6 +560,10 @@ def client_accept_order(message: types.Message, callback: types.CallbackQuery, u
     order.master = request.master
     order.message_id = request.message_id
     order.save()
+    for transaction in models.Transaction.objects.filter(user=order.client, refund=True):
+        utils.way_for_pay_request_refund(transaction)
+    with suppress(Exception):
+        bot.send_message(order.client.user_id, order.client.text('client_refunded'))
     username = '@' + utils.esc_md(user.username) if user.username else ''
     with suppress(ApiTelegramException):
         bot.send_message(order.master.user_id, order.master.text('client_accepted_order')

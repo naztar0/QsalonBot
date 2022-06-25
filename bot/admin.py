@@ -29,9 +29,10 @@ class StatsAdmin(admin.ModelAdmin):
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['created', 'user_id', 'username_custom', 'first_name', 'last_name', 'type', 'categories_custom', 'portfolio', 'city', 'location_custom', 'balance', 'is_active', 'is_banned']
+    list_display = ['created', 'user_id', 'username_custom', 'first_name', 'last_name', 'type', 'categories_custom',
+                    'portfolio', 'city', 'location_custom', 'balance', 'is_active_master', 'is_banned']
     list_editable = ['is_banned', 'balance']
-    list_filter = ['is_banned', 'type', 'is_active', 'categories__category', 'city', 'city__country']
+    list_filter = ['is_banned', 'type', 'is_active_master', 'categories__category', 'city', 'city__country']
     search_fields = ['user_id', 'username', 'first_name', 'last_name']
     date_hierarchy = 'created'
     list_display_links = None
@@ -264,7 +265,7 @@ class PriceAdmin(admin.ModelAdmin):
 
 class SettingsAdmin(PreferencesAdmin):
     fieldsets = [
-        ('Параметры', {'fields': ['media_chat_link', 'portfolio_chat_link', 'media_chat_id', 'portfolio_chat_id']}),
+        ('Параметры', {'fields': ['media_chat_link', 'portfolio_chat_link', 'media_chat_id', 'portfolio_chat_id', 'client_freeze_amount']}),
     ]
 
     def has_add_permission(self, *args, **kwargs):
@@ -356,8 +357,8 @@ class UserStatsAdmin(StatsAdmin):
             'total': Count('user_id'),
             'clients': Count('user_id', Q(type=types.User.CLIENT)),
             'masters': Count('user_id', Q(type=types.User.MASTER)),
-            'active': Count('user_id', Q(type=types.User.MASTER, is_active=True)),
-            'inactive': Count('user_id', Q(type=types.User.MASTER, is_active=False)),
+            'active': Count('user_id', Q(type=types.User.MASTER, is_active_master=True)),
+            'inactive': Count('user_id', Q(type=types.User.MASTER, is_active_master=False)),
             'balance': Sum('balance'),
         }
         response.context_data['summary_total'] = dict(
@@ -378,8 +379,8 @@ class CategoryStatsAdmin(StatsAdmin):
             users = masters.filter(categories__category=cat).distinct()
             summary.append({'title': cat.title,
                             'total': users.count(),
-                            'active': users.filter(is_active=True).count(),
-                            'inactive': users.filter(is_active=False).count()})
+                            'active': users.filter(is_active_master=True).count(),
+                            'inactive': users.filter(is_active_master=False).count()})
         response.context_data['summary'] = summary
         return response
 
