@@ -562,3 +562,10 @@ def way_for_pay_request_refund(transaction: models.Transaction):
         return True
     else:
         return False, response['reason']
+
+
+def refund_transactions(user):
+    transactions = models.Transaction.objects.filter(user=user, refund=True)
+    for transaction in transactions:
+        way_for_pay_request_refund(transaction)
+    transactions.delete()

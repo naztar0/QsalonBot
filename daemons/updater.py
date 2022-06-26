@@ -11,10 +11,7 @@ def update_active_clients():
     orders = distinct(models.Order.objects.filter(created__lte=now - timedelta(days=2), master__isnull=True,
                                                   client__transaction__refund=True), 'client')
     for order in orders:
-        transactions = models.Transaction.objects.filter(user=order.client, refund=True)
-        for transaction in transactions:
-            way_for_pay_request_refund(transaction)
-        transactions.delete()
+        refund_transactions(order.client)
         with suppress(Exception):
             bot.send_message(order.client.user_id, order.client.text('client_refunded'))
 
@@ -34,5 +31,5 @@ if __name__ == '__main__':
     setup()
     from bot import models
     from bot.misc import bot
-    from bot.utils import exec_protected, way_for_pay_request_refund, distinct
+    from bot.utils import exec_protected, refund_transactions, distinct
     main()

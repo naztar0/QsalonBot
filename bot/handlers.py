@@ -560,8 +560,7 @@ def client_accept_order(message: types.Message, callback: types.CallbackQuery, u
     order.master = request.master
     order.message_id = request.message_id
     order.save()
-    for transaction in models.Transaction.objects.filter(user=order.client, refund=True):
-        utils.way_for_pay_request_refund(transaction)
+    utils.refund_transactions(order.client)
     with suppress(Exception):
         bot.send_message(order.client.user_id, order.client.text('client_refunded'))
     username = '@' + utils.esc_md(user.username) if user.username else ''
