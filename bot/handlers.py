@@ -419,13 +419,14 @@ def client_choose_category(message: types.Message, callback: types.CallbackQuery
 # noinspection PyUnusedLocal
 @utils.logger_middleware(Log.INLINE_BUTTON, is_callback=True)
 def client_choose_subcategory(message: types.Message, callback: types.CallbackQuery, user: models.User, data):
-    user.update_state_data({'sub_id': data})
-    radius = models.Subcategory.objects.get(id=data).category.radius
+    state_data = user.update_state_data({'sub_id': data})
+    subcategory = models.Subcategory.objects.get(id=data)
+    radius = subcategory.category.radius
+    category_data = f'{subcategory.category.title} - {subcategory.title}'
     user.set_state(utils.States.NEW_ORDER_LOCATION)
     with suppress(ApiTelegramException):
         bot.delete_message(message.chat.id, message.message_id)
-    # bot.send_video(message.chat.id, misc.hint_video_id, caption="✋✋✋Если пропали кнопки то нажмите «квадратик» как на скриншоте👌🧐")
-    answer(message, user.text('order_location').format(radius=radius), reply_markup=ButtonSet(ButtonSet.SEND_LOCATION))
+    answer(message, user.text('order_location').format(radius=radius, category=category_data), reply_markup=ButtonSet(ButtonSet.SEND_LOCATION))
 
 
 # noinspection PyUnusedLocal

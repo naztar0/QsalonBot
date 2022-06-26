@@ -8,9 +8,10 @@ from django.utils import timezone
 
 def update_active_clients():
     now = timezone.now()
-    orders = distinct(models.Order.objects.filter(created__lte=now - timedelta(days=2), master__isnull=True,
-                                                  client__transaction__refund=True), 'client')
+    orders = models.Order.objects.filter(created__lte=now - timedelta(days=2), master__isnull=True, client__transaction__refund=True)
     for order in orders:
+        if models.Request.objects.filter(order=order).count():
+            continue
         refund_transactions(order.client)
         with suppress(Exception):
             bot.send_message(order.client.user_id, order.client.text('client_refunded'))
