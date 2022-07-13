@@ -199,7 +199,6 @@ class Settings(Preferences):
     portfolio_chat_link = models.URLField('Ссылка на чат портфолио', max_length=64, default='-')
     media_chat_id = models.BigIntegerField('ID чата медиа', default=0)
     portfolio_chat_id = models.BigIntegerField('ID чата портфолио', default=0)
-    client_freeze_amount = models.PositiveIntegerField('Сумма списания с клиента, грн', default=0)
 
     def __str__(self):
         return 'Настройки'

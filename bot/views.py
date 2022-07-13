@@ -13,7 +13,6 @@ from telebot.types import Update
 
 def payment_handler(request):
     _time = int(time())
-    params = request.GET
     data = loads(request.body)
     reference = data.get('orderReference')
     user_id = int(reference.split('_')[1])
@@ -28,25 +27,15 @@ def payment_handler(request):
         user = models.User.objects.get(user_id=user_id)
     except models.User.DoesNotExist:
         return response
-    transaction = models.Transaction.objects.create(user=user, amount=amount, currency=currency, reference=reference)
-    if params.get('client') == '1':
-        transaction.refund = True
-        transaction.save()
-        user.is_active_client = True
-        user.save()
-        with suppress(Exception):
-            bot.send_message(user.user_id, user.text('client_activated'))
-        with suppress(KeyError):
-            utils.save_order(user)
-    else:
-        try:
-            orders_amount = models.Price.objects.get(price__range=[amount - 10 if amount > 10 else 0, amount + 10]).amount
-        except models.Price.DoesNotExist:
-            return response
-        user.balance += orders_amount
-        user.save()
-        with suppress(Exception):
-            bot.send_message(user.user_id, user.text('balance_top_upped').format(amount=orders_amount))
+    models.Transaction.objects.create(user=user, amount=amount, currency=currency, reference=reference)
+    try:
+        orders_amount = models.Price.objects.get(price__range=[amount - 10 if amount > 10 else 0, amount + 10]).amount
+    except models.Price.DoesNotExist:
+        return response
+    user.balance += orders_amount
+    user.save()
+    with suppress(Exception):
+        bot.send_message(user.user_id, user.text('balance_top_upped').format(amount=orders_amount))
     return response
 
 

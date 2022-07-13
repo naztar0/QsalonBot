@@ -513,10 +513,10 @@ def save_order(user):
     bulk_mailing(order, data)
 
 
-def way_for_pay_request_purchase(user_id, amount, client=False):
+def way_for_pay_request_purchase(user_id, amount):
     date = int(time())
-    params = '?client=1' if client else ''
-    title = 'Активация учетной записи' if client else 'Пополнение баланса'
+    params = ''
+    title = 'Пополнение баланса'
     order_reference = f'{date}_{user_id}'
     secret = settings.WAY_FOR_PAY_SECRET.encode('utf-8')
     str_signature = f'{settings.WAY_FOR_PAY_MERCHANT_ID};{misc.way_for_pay_merchant_domain_name};{order_reference};{date};{amount};UAH;{title};1;{amount}'.encode('utf-8')

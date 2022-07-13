@@ -230,7 +230,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display = ['created', 'user_id_custom', 'amount', 'currency']
     list_per_page = 25
 
-    search_fields = ['user']
+    search_fields = ['user__user_id']
     list_filter = ['currency']
 
     def user_id_custom(self, obj):
@@ -265,7 +265,7 @@ class PriceAdmin(admin.ModelAdmin):
 
 class SettingsAdmin(PreferencesAdmin):
     fieldsets = [
-        ('Параметры', {'fields': ['media_chat_link', 'portfolio_chat_link', 'media_chat_id', 'portfolio_chat_id', 'client_freeze_amount']}),
+        ('Параметры', {'fields': ['media_chat_link', 'portfolio_chat_link', 'media_chat_id', 'portfolio_chat_id']}),
     ]
 
     def has_add_permission(self, *args, **kwargs):

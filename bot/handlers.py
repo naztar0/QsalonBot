@@ -244,23 +244,6 @@ def save_portfolio(message, user: models.User):
     answer(message, user.text('master_registered_completely') if data.get('register') else user.text('saved'), reply_markup=ButtonSet(ButtonSet.MASTER_2))
 
 
-def client_activation(message, user):
-    pay_link = utils.way_for_pay_request_purchase(user.user_id, preferences.Settings.client_freeze_amount, True)
-    if isinstance(pay_link, tuple):
-        answer(message, f"Error: {pay_link[1]}", pm=False)
-        return
-    key = types.InlineKeyboardMarkup()
-    key.add(types.InlineKeyboardButton("Активировать", url=pay_link))
-    answer(message, user.text('client_pay').format(amount=preferences.Settings.client_freeze_amount), reply_markup=key)
-
-
-def new_order(message, user):
-    if user.is_active_client:
-        utils.save_order(user)
-    else:
-        client_activation(message, user)
-
-
 @utils.reset_state_checker('start_master', ButtonSet.MASTER_1)
 def master_portfolio(message, user: models.User):
     if user.portfolio:
@@ -342,7 +325,7 @@ def client_location(message: types.Message, user: models.User):
 @utils.reset_state_checker('start_client', ButtonSet.CLIENT)
 def client_text_media(message: types.Message, user: models.User):
     if message.text == misc.next_button:
-        return new_order(message, user)
+        utils.save_order(user)
     if message.text:
         if len(message.text) > 600:
             answer(message, user.text('text_too_long'))
@@ -561,7 +544,6 @@ def client_accept_order(message: types.Message, callback: types.CallbackQuery, u
     order.master = request.master
     order.message_id = request.message_id
     order.save()
-    utils.refund_transactions(order.client)
     with suppress(Exception):
         bot.send_message(order.client.user_id, order.client.text('client_refunded'))
     username = '@' + utils.esc_md(user.username) if user.username else ''
