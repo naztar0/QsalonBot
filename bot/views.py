@@ -43,7 +43,6 @@ def payment_handler(request):
 
 
 def portfolio_handler(request, portfolio_id):
-    print(portfolio_id)
     try:
         portfolio = models.Portfolio.objects.get(id=portfolio_id)
     except models.Portfolio.DoesNotExist:
