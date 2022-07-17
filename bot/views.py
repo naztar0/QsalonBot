@@ -77,4 +77,4 @@ def payment_callback(request):
 @csrf_exempt
 def portfolio_webview(request, portfolio_id):
     response = utils.exec_protected(portfolio_handler, request, portfolio_id)
-    return HttpResponse(response)
+    return response
