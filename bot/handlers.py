@@ -1,13 +1,12 @@
 import json
 from datetime import datetime
 from contextlib import suppress
-from preferences import preferences
 from telebot import types
 from telebot.apihelper import ApiTelegramException
 from bot import utils, misc, models
 from bot.misc import bot
 from bot.utils import ButtonSet, answer
-from bot.types import Log, User
+from bot.types import Log, User, Media
 from bot.utils_lib import emoji
 
 
@@ -154,18 +153,23 @@ def register_client(message: types.Message, user):
 def register_master(message: types.Message, user: models.User):
     user.type = User.MASTER
     user.save()
-    if not user.categories.count():
-        answer(message, user.text('start_master_steps'))
-        answer(message, user.text('step_n').format(n=1))
-        user.update_state_data({'register': True})
-        master_categories(message, user)
-    elif not user.location.x:
-        answer(message, user.text('step_n').format(n=2))
-        user.update_state_data({'register': True})
-        master_location(message, user)
-    elif not user.portfolio:
-        user.update_state_data({'register': True})
-        edit_portfolio(message, user)
+    if not user.is_active_master:
+        if not user.categories.count():
+            answer(message, user.text('start_master_steps'))
+            answer(message, user.text('step_n').format(n=1))
+            user.update_state_data({'register': True})
+            master_categories(message, user)
+        elif not user.location.x:
+            answer(message, user.text('step_n').format(n=2))
+            user.update_state_data({'register': True})
+            master_location(message, user)
+        elif not user.portfolio:
+            user.update_state_data({'register': True})
+            edit_portfolio(message, user)
+        else:
+            user.is_active_master = True
+            user.save()
+            answer(message, user.text('start_master'), reply_markup=ButtonSet(ButtonSet.MASTER_1))
     else:
         answer(message, user.text('start_master'), reply_markup=ButtonSet(ButtonSet.MASTER_1))
 
@@ -233,14 +237,12 @@ def save_portfolio(message, user: models.User):
         elif data.get('only_media'):
             media.text = user.portfolio.text
         user.portfolio.delete()
-    username = '@' + user.username if user.username else ''
-    credentials = f'{message.from_user.full_name} {username} 👇'
-    bot.send_message(preferences.Settings.portfolio_chat_id, credentials)
-    media_post = utils.send_media_group(preferences.Settings.portfolio_chat_id, media)
-    user.portfolio = models.Portfolio.objects.create(text=media.text, photo=json.dumps(media.photo, separators=(',', ':')),
-                                                     video=json.dumps(media.video, separators=(',', ':')), message_id=media_post.message_id)
-    user.reset_state()
+    user.portfolio = models.Portfolio.objects.create(text=media.text)
     user.save()
+    photos = [{'file_id': file.file_id, 'type': Media.PHOTO, 'portfolio': user.portfolio} for file in media.photo]
+    videos = [{'file_id': file.file_id, 'type': Media.VIDEO, 'portfolio': user.portfolio} for file in media.video]
+    models.Media.objects.bulk_create(photos + videos)
+    user.reset_state()
     answer(message, user.text('master_registered_completely') if data.get('register') else user.text('saved'), reply_markup=ButtonSet(ButtonSet.MASTER_2))
 
 
@@ -521,10 +523,8 @@ def master_accept_order(message: types.Message, callback: types.CallbackQuery, u
     bot.send_message(order.client.user_id, order.client.text('master_accepted_order')
                      .format(master_name=utils.esc_md(message.chat.first_name),
                              master_id=message.chat.id, master_username=username,
-                             address=utils.esc_md(address), geolocation=geolocation,
-                             portfolio_chat=preferences.Settings.portfolio_chat_link,
-                             portfolio_id=user.portfolio.message_id),
-                     reply_markup=ButtonSet(ButtonSet.INL_CLIENT_ACCEPT_ORDER, request.id), parse_mode='Markdown')
+                             address=utils.esc_md(address), geolocation=geolocation),
+                     reply_markup=ButtonSet(ButtonSet.INL_CLIENT_ACCEPT_ORDER, request.id, user.portfolio.id), parse_mode='Markdown')
     username = '@' + utils.esc_md(order.client.username) if order.client.username else ''
     answer(message, user.text('master_accepted_order_reply').format(client_id=order.client.user_id, client_username=username))
 

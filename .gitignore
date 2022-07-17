@@ -140,3 +140,4 @@ dmypy.json
 cython_debug/
 
 server_config/
+static/plugins/

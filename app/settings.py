@@ -24,6 +24,7 @@ WEBHOOK_PATH = f'{WEBHOOK_BASE_PATH}/{SECRET_KEY}'
 WEBHOOK_URL = f'https://{WEBHOOK_DOMAIN}/{WEBHOOK_PATH}'
 BASE_ADMIN_PATH = f'https://{WEBHOOK_DOMAIN}'
 PAYMENT_PATH = 'payment'
+PORTFOLIO_PATH = 'portfolio'
 
 MYSQL_HOST = env.str('MYSQL_HOST', default='localhost') if DEBUG else '127.0.0.1'
 MYSQL_PORT = env.int('MYSQL_PORT', default=3306)

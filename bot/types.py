@@ -26,6 +26,12 @@ class Post(helper.HelperMode):
     DONE = helper.Item()
 
 
+class Media(helper.HelperMode):
+    mode = helper.HelperMode.SCREAMING_SNAKE_CASE
+    PHOTO = helper.Item()
+    VIDEO = helper.Item()
+
+
 class MessageField(models.TextField):
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 4096

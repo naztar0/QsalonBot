@@ -1,0 +1,18 @@
+:root {
+    --tg-theme-bg-color: #fafafa;
+    --tg-theme-text-color: #333;
+    --tg-theme-hint-color: #002e3a;
+    --tg-theme-link-color: #308996;
+    --tg-theme-button-color: #4349e3;
+    --tg-theme-button-text-color: #d2d2d2;
+    --tg-theme-secondary-bg-color: #fafafa;
+}
+
+body {
+    -ms-overflow-style: none;
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0;
+}
+body::-webkit-scrollbar {
+    display: none;
+}

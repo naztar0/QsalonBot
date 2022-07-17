@@ -15,10 +15,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from app import settings
-from bot.views import update, payment_callback
+from bot.views import update, payment_callback, portfolio_webview
 
 urlpatterns = [
     path(settings.WEBHOOK_PATH, update),
     path(settings.PAYMENT_PATH, payment_callback),
+    path(settings.PORTFOLIO_PATH + '/<int:portfolio_id>', portfolio_webview),
     path('', admin.site.urls),
 ]

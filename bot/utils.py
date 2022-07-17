@@ -10,9 +10,11 @@ from contextlib import suppress
 from django.conf import settings
 from django.db.models import Func, ExpressionWrapper, FloatField
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 from preferences import preferences
 from telebot.types import ReplyKeyboardMarkup as RKM, InlineKeyboardMarkup as IKM
-from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, CallbackQuery, InputMediaPhoto, InputMediaVideo
+from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, CallbackQuery, InputMediaPhoto,\
+    InputMediaVideo, WebAppInfo
 from telebot.apihelper import ApiTelegramException
 from bot.utils_lib import helper, callback_data, emoji
 from bot import models, misc
@@ -123,7 +125,8 @@ class ButtonSet(helper.Helper):
             key.add(KeyboardButton('Отправить моё местоположение', request_location=True))
             key.add(KeyboardButton(misc.back_button))
         elif btn_set == cls.INL_CLIENT_ACCEPT_ORDER:
-            ikey.add(InlineKeyboardButton('Согласиться', callback_data=set_callback(CallbackFuncs.CLIENT_ACCEPT_ORDER, args)))
+            ikey.add(InlineKeyboardButton('Портфолио', web_app=WebAppInfo(f'{settings.BASE_ADMIN_PATH}/{settings.PORTFOLIO_PATH}/{args[1]}')))
+            ikey.add(InlineKeyboardButton('Согласиться', callback_data=set_callback(CallbackFuncs.CLIENT_ACCEPT_ORDER, args[0])))
         elif btn_set == cls.INL_MASTER_ACCEPT_ORDER:
             ikey.row_width = 2
             ikey.add(*(InlineKeyboardButton('Выполнить', callback_data=set_callback(CallbackFuncs.MASTER_ACCEPT_ORDER, args)),
@@ -245,6 +248,8 @@ def answer(message, text, reply_markup=None, pm=True, **kwargs):
                 del kwargs[t]
         try:
             func(message.chat.id, reply_markup=reply_markup, parse_mode='Markdown' if pm else None, **kwargs, **kw)
+        except Exception as e:
+            print(e)
         except ApiTelegramException:
             del kwargs[_type]
             misc.bot.send_message(message.chat.id, text, parse_mode='Markdown' if pm else None, **kwargs, **kw)
@@ -571,3 +576,13 @@ def refund_transactions(user):
     for transaction in transactions:
         way_for_pay_request_refund(transaction)
     transactions.delete()
+
+
+def get_file_url(file: models.Media):
+    now = timezone.now()
+    if file.url_created and file.url_created > now - timedelta(hours=1):
+        return file.file_url
+    file.file_url = misc.bot.get_file_url(file.file_id)
+    file.url_created = now
+    file.save()
+    return file.file_url

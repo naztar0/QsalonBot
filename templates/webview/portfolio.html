@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Portfolio</title>
+    <link rel="stylesheet" href="/static/webview/css/style.css">
+    <link rel="stylesheet" href="/static/webview/css/portfolio.css">
+
+    <link type="text/css" rel="stylesheet" href="/static/plugins/lightgallery/css/lightgallery.css" />
+    <link type="text/css" rel="stylesheet" href="/static/plugins/lightgallery/css/lg-thumbnail.css" />
+    <link type="text/css" rel="stylesheet" href="/static/plugins/lightgallery/css/lg-autoplay.css" />
+    <link type="text/css" rel="stylesheet" href="/static/plugins/lightgallery/css/lg-video.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <script src="/static/plugins/lightgallery/lightgallery.umd.js"></script>
+    <script src="/static/plugins/lightgallery/plugins/thumbnail/lg-thumbnail.umd.js"></script>
+    <script src="/static/plugins/lightgallery/plugins/autoplay/lg-autoplay.umd.js"></script>
+    <script src="/static/plugins/lightgallery/plugins/video/lg-video.umd.js"></script>
+
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color);
+        }
+        .lg-backdrop {
+            background-color: var(--tg-theme-bg-color) !important;
+        }
+        .lg-thumb-outer {
+            background-color: var(--tg-theme-bg-color) !important;
+        }
+        .lg-counter {
+            color: var(--tg-theme-text-color) !important;
+        }
+        .lg-thumb-item {
+            border-width: 3px !important;
+        }
+        .lg-thumb-item.active, .lg-thumb-item:hover {
+            border-color: var(--tg-theme-button-color) !important;
+        }
+        .lg-next, .lg-prev {
+            background-color: var(--tg-theme-button-color) !important;
+            opacity: 0.4 !important;
+            border-radius: 10px !important;
+            color: var(--tg-theme-text-color) !important;
+        }
+        p {
+            color: var(--tg-theme-text-color);
+        }
+    </style>
+</head>
+<body>
+<div id="gallery" class="inline-gallery-container"></div>
+<p>
+    {{ text }}
+</p>
+<script type="text/javascript">
+    let data = [];
+    {% for item in media.photo %}
+        data.push({
+            src: '{{ item }}',
+            thumb: '{{ item }}',
+        })
+    {% endfor %}
+    {% for item in media.video %}
+        data.push({
+            video: {
+                source: [{
+                    src: '{{ item }}',
+                    type: "video/mp4"
+                }],
+                attributes: {
+                    preload: false,
+                    controls: true
+                }
+            },
+            thumb: '/static/webview/img/video.png',
+        })
+    {% endfor %}
+    const elem = document.getElementById('gallery');
+    const gallery = lightGallery(elem, {
+        container: elem,
+        speed: 500,
+        closable: false,
+        download: false,
+        autoplayControls: false,
+        showLoading: false,
+        progressBar: false,
+        counter: false,
+        isMobile: true,
+        forceMobile: true,
+        thumbnail: true,
+        animateThumb: true,
+        slideShowAutoplay: true,
+        plugins: [
+            lgThumbnail,
+            lgAutoplay,
+            lgVideo
+        ],
+        dynamic: true,
+        dynamicEl: data
+    });
+    gallery.openGallery();
+</script>
+</body>
+</html>

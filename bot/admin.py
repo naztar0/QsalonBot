@@ -93,7 +93,7 @@ class LogAdmin(admin.ModelAdmin):
 
 
 class PortfolioAdmin(admin.ModelAdmin):
-    list_display = ['text_custom', 'photo_custom', 'video_custom']
+    list_display = ['text_custom', 'photo_custom', 'video_custom', 'preview']
     list_per_page = 25
 
     search_fields = ['text']
@@ -106,18 +106,22 @@ class PortfolioAdmin(admin.ModelAdmin):
     text_custom.short_description = 'Текст'
 
     def photo_custom(self, obj):
-        return str(len(loads(obj.photo)))
+        return models.Media.objects.filter(portfolio=obj, type=types.Media.PHOTO).count()
     photo_custom.short_description = 'Количество фото'
 
     def video_custom(self, obj):
-        return str(len(loads(obj.video)))
+        return models.Media.objects.filter(portfolio=obj, type=types.Media.VIDEO).count()
     video_custom.short_description = 'Количество видео'
+
+    def preview(self, obj):
+        return format_html(f'<a href="/portfolio/{obj.id}" target="_blank" class="viewlink">Просмотреть</a>')
+    preview.short_description = 'Превью'
 
     def has_add_permission(self, *args, **kwargs):
         return False
 
     def has_change_permission(self, *args, **kwargs):
-        return False
+        return True
 
     def has_delete_permission(self, *args, **kwargs):
         return False

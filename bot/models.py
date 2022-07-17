@@ -240,6 +240,15 @@ class MediaGroupHelper(models.Model):
     video_id = models.CharField(max_length=128, default=None, null=True)
 
 
+class Media(models.Model):
+    TYPES = ((types.Media.PHOTO, 'Фото'), (types.Media.VIDEO, 'Видео'))
+    type = models.CharField(max_length=8, choices=TYPES)
+    file_id = models.CharField(max_length=128)
+    file_url = models.URLField(max_length=1024, default=None, null=True)
+    url_created = models.DateTimeField(default=None, null=True)
+    portfolio = models.ForeignKey(Portfolio, models.CASCADE, verbose_name='Портфолио')
+
+
 class Stats:
     class Meta:
         proxy = True

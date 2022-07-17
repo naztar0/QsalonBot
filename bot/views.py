@@ -6,8 +6,11 @@ from json import decoder, dumps, loads
 from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 from bot import models
 from bot.handlers import bot, utils
+from bot.types import Media
+from emoji import emojize
 from telebot.types import Update
 
 
@@ -39,6 +42,18 @@ def payment_handler(request):
     return response
 
 
+def portfolio_handler(request, portfolio_id):
+    print(portfolio_id)
+    try:
+        portfolio = models.Portfolio.objects.get(id=portfolio_id)
+    except models.Portfolio.DoesNotExist:
+        return HttpResponse(status=404)
+    photo = [utils.get_file_url(file) for file in models.Media.objects.filter(portfolio=portfolio, type=Media.PHOTO)]
+    video = [utils.get_file_url(file) for file in models.Media.objects.filter(portfolio=portfolio, type=Media.VIDEO)]
+    media = {'photo': photo, 'video': video}
+    return render(request, 'webview/portfolio.html', {'media': media, 'text': emojize(portfolio.text or '')})
+
+
 @csrf_exempt
 def update(request):
     try:
@@ -57,4 +72,11 @@ def update(request):
 @csrf_exempt
 def payment_callback(request):
     response = utils.exec_protected(payment_handler, request)
+    return HttpResponse(response)
+
+
+@csrf_exempt
+def portfolio_webview(request, portfolio_id):
+    # response = utils.exec_protected(portfolio_handler, request, portfolio_id)
+    response = portfolio_handler(request, portfolio_id)
     return HttpResponse(response)
