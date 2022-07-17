@@ -16,7 +16,7 @@ from telebot.types import ReplyKeyboardMarkup as RKM, InlineKeyboardMarkup as IK
 from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, CallbackQuery, InputMediaPhoto,\
     InputMediaVideo, WebAppInfo
 from telebot.apihelper import ApiTelegramException
-from bot.utils_lib import helper, callback_data, emoji
+from bot.utils_lib import helper, callback_data
 from bot import models, misc
 from bot.types import User
 from app.settings import OPENCAGE_KEY
