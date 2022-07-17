@@ -344,7 +344,7 @@ def exec_protected(func, *args, **kwargs):
     except Exception:
         for admin in settings.DEVS:
             with suppress(Exception):
-                misc.bot.send_message(admin, traceback.format_exc()[:-4096])
+                misc.bot.send_message(admin, traceback.format_exc()[-4096:])
 
 
 def set_callback(func, data=None):
