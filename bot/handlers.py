@@ -524,7 +524,7 @@ def master_accept_order(message: types.Message, callback: types.CallbackQuery, u
                      .format(master_name=utils.esc_md(message.chat.first_name),
                              master_id=message.chat.id, master_username=username,
                              address=utils.esc_md(address), geolocation=geolocation),
-                     reply_markup=ButtonSet(ButtonSet.INL_CLIENT_ACCEPT_ORDER, request.id, user.portfolio.id), parse_mode='Markdown')
+                     reply_markup=ButtonSet(ButtonSet.INL_CLIENT_ACCEPT_ORDER, [request.id, user.portfolio.id]), parse_mode='Markdown')
     username = '@' + utils.esc_md(order.client.username) if order.client.username else ''
     answer(message, user.text('master_accepted_order_reply').format(client_id=order.client.user_id, client_username=username))
 
