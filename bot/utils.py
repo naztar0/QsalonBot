@@ -18,7 +18,7 @@ from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardBut
 from telebot.apihelper import ApiTelegramException
 from bot.utils_lib import helper, callback_data
 from bot import models, misc
-from bot.types import User
+from bot.types import User, Media
 from app.settings import OPENCAGE_KEY
 
 
@@ -178,8 +178,8 @@ class MediaGroup:
         if isinstance(data, models.Portfolio):
             data = MediaGroup.from_model(data)
         self.text = data.get('text')
-        self.photo = data.get('photo') or []
-        self.video = data.get('video') or []
+        self.photo: list[str] = data.get('photo', [])
+        self.video: list[str] = data.get('video', [])
 
     def __bool__(self):
         return any((self.text, self.photo, self.video))
@@ -199,7 +199,10 @@ class MediaGroup:
 
     @classmethod
     def from_model(cls, portfolio: models.Portfolio):
-        return {'text': portfolio.text, 'photo': json.loads(portfolio.photo), 'video': json.loads(portfolio.video)}
+        media = models.Media.objects.filter(portfolio=portfolio)
+        photo = [x.file_id for x in media if x.type == Media.PHOTO]
+        video = [x.file_id for x in media if x.type == Media.VIDEO]
+        return {'text': portfolio.text, 'photo':  photo, 'video': video}
 
     @property
     def is_media_group(self):
