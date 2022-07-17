@@ -241,7 +241,8 @@ def save_portfolio(message, user: models.User):
     user.save()
     photos = [{'file_id': file_id, 'type': Media.PHOTO, 'portfolio': user.portfolio} for file_id in media.photo]
     videos = [{'file_id': file_id, 'type': Media.VIDEO, 'portfolio': user.portfolio} for file_id in media.video]
-    models.Media.objects.bulk_create(photos + videos)
+    objs = [models.Media(**obj) for obj in photos + videos]
+    models.Media.objects.bulk_create(objs)
     user.reset_state()
     answer(message, user.text('master_registered_completely') if data.get('register') else user.text('saved'), reply_markup=ButtonSet(ButtonSet.MASTER_2))
 
