@@ -232,8 +232,8 @@ def save_portfolio(message, user: models.User):
         return
     if user.portfolio:
         if data.get('only_text'):
-            media.photo = json.loads(user.portfolio.photo)
-            media.video = json.loads(user.portfolio.video)
+            media.photo = list(user.portfolio.photo)
+            media.video = list(user.portfolio.video)
         elif data.get('only_media'):
             media.text = user.portfolio.text
         user.portfolio.delete()

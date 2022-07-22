@@ -92,9 +92,15 @@ class City(models.Model):
 
 class Portfolio(models.Model):
     text = models.CharField('Текст', max_length=4096, default=None, null=True)
-    photo = models.CharField('Фото', max_length=2048, default=None, null=True)
-    video = models.CharField('Видео', max_length=2048, default=None, null=True)
     message_id = models.PositiveIntegerField(default=None, null=True)
+
+    @property
+    def photo(self):
+        return Media.objects.filter(portfolio=self, type=types.Media.PHOTO)
+
+    @property
+    def video(self):
+        return Media.objects.filter(portfolio=self, type=types.Media.VIDEO)
 
     def __str__(self):
         return str(self.id)
