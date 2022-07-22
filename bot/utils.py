@@ -199,9 +199,8 @@ class MediaGroup:
 
     @classmethod
     def from_model(cls, portfolio: models.Portfolio):
-        media = models.Media.objects.filter(portfolio=portfolio)
-        photo = [x.file_id for x in media if x.type == Media.PHOTO]
-        video = [x.file_id for x in media if x.type == Media.VIDEO]
+        photo = [x.file_id for x in portfolio.photo]
+        video = [x.file_id for x in portfolio.video]
         return {'text': portfolio.text, 'photo':  photo, 'video': video}
 
     @property
