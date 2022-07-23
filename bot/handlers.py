@@ -134,7 +134,7 @@ def main_text_handler(message: types.Message, user):
         master_location(message, user)
     elif message.text == misc.master_buttons_2[3]:
         answer(message, user.text('start_master'), reply_markup=ButtonSet(ButtonSet.MASTER_1))
-    elif message.text in misc.edit_buttons:
+    elif message.text in (*misc.edit_buttons, misc.create_button):
         edit_portfolio(message, user)
     elif message.text == misc.client_buttons[0]:
         client_create_order(message, user)
