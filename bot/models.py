@@ -19,6 +19,7 @@ class User(models.Model):
     location = models.PointField('Локация', geography=True, default=Point(0, 0))
     city = models.ForeignKey('City', models.CASCADE, verbose_name='Город', default=None, null=True)
     balance = models.PositiveIntegerField('Баланс', default=0)
+    phone = models.CharField('Телефон', max_length=16, default=None, null=True)
     is_active_master = models.BooleanField('Активен мастер', default=False)
     is_active_client = models.BooleanField('Активен клиент', default=False)
     is_banned = models.BooleanField('Бан', default=False)
@@ -140,6 +141,8 @@ class Subcategory(models.Model):
 
 
 class Order(models.Model):
+    STATUSES = ((types.Order.WAIT, '⏳ Ожидание'), (types.Order.FOUND, '✅ Мастер найден'),
+                (types.Order.NOT_FOUND, '❌ Мастер не найден'), (types.Order.CANCELED, '❎ Не актуально'))
     created = models.DateTimeField('🕐 Создан, по UTC', auto_now_add=True)
     client = models.ForeignKey(User, models.CASCADE, verbose_name='Клиент', related_name='client')
     master = models.ForeignKey(User, models.CASCADE, verbose_name='Мастер', related_name='master', default=None, null=True)
@@ -148,6 +151,7 @@ class Order(models.Model):
     city = models.ForeignKey(City, models.CASCADE, verbose_name='Город', default=None, null=True)
     date = models.DateField('Дата')
     times = models.CharField('Время', max_length=512)
+    status = models.CharField('Статус', max_length=16, choices=STATUSES, default=types.Order.WAIT)
     message_id = models.PositiveIntegerField(default=None, null=True)
 
     def __str__(self):
@@ -202,9 +206,7 @@ class Price(models.Model):
 
 class Settings(Preferences):
     media_chat_link = models.URLField('Ссылка на чат медиа', max_length=64, default='-')
-    portfolio_chat_link = models.URLField('Ссылка на чат портфолио', max_length=64, default='-')
     media_chat_id = models.BigIntegerField('ID чата медиа', default=0)
-    portfolio_chat_id = models.BigIntegerField('ID чата портфолио', default=0)
 
     def __str__(self):
         return 'Настройки'

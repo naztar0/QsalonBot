@@ -18,7 +18,7 @@ from telebot.types import KeyboardButton, ReplyKeyboardRemove, InlineKeyboardBut
 from telebot.apihelper import ApiTelegramException
 from bot.utils_lib import helper, callback_data
 from bot import models, misc
-from bot.types import User, Media
+from bot.types import User, Order
 from app.settings import OPENCAGE_KEY
 
 
@@ -30,6 +30,7 @@ class States(helper.Helper):
     NEW_ORDER_TIME = helper.Item()
     NEW_ORDER_PRICE = helper.Item()
     NEW_ORDER_FORM_TEXT_MEDIA = helper.Item()
+    NEW_ORDER_CONTACT = helper.Item()
     PORTFOLIO_TEXT = helper.Item()
     PORTFOLIO_MEDIA = helper.Item()
     NEW_LOCATION = helper.Item()
@@ -55,6 +56,7 @@ class CallbackFuncs:
     ORDER_INFO = 0x0e
     ORDER_DELETE = 0x0f
     ORDER_REQUESTS_AMOUNT = 0x10
+    ORDER_SURVEY = 0x11
 
 
 class ReplyKeyboardMarkup(RKM):
@@ -76,6 +78,7 @@ class ButtonSet(helper.Helper):
     MASTER_1 = helper.Item()
     MASTER_2 = helper.Item()
     SEND_LOCATION = helper.Item()
+    SEND_CONTACT = helper.Item()
     SAVE_CHANGES = helper.Item()
     EDIT_PORTFOLIO = helper.Item()
     CREATE = helper.Item()
@@ -93,6 +96,7 @@ class ButtonSet(helper.Helper):
     INL_ORDERS_HISTORY = helper.Item()
     INL_ORDER_DELETE = helper.Item()
     INL_ORDER_REQUESTS_AMOUNT = helper.Item()
+    INL_ORDER_SURVEY = helper.Item()
 
     def __new__(cls, btn_set: helper.Item = None, args=None, row_width=1):
         if btn_set == cls.REMOVE:
@@ -123,6 +127,9 @@ class ButtonSet(helper.Helper):
             key.add(*(KeyboardButton(x) for x in (misc.back_button, misc.next_button)))
         elif btn_set == cls.SEND_LOCATION:
             key.add(KeyboardButton('Отправить моё местоположение', request_location=True))
+            key.add(KeyboardButton(misc.back_button))
+        elif btn_set == cls.SEND_CONTACT:
+            key.add(KeyboardButton('Отправить контакт', request_contact=True))
             key.add(KeyboardButton(misc.back_button))
         elif btn_set == cls.INL_CLIENT_ACCEPT_ORDER:
             ikey.add(InlineKeyboardButton('Портфолио', web_app=WebAppInfo(f'{settings.BASE_ADMIN_PATH}/{settings.PORTFOLIO_PATH}/{args[1]}')))
@@ -159,6 +166,10 @@ class ButtonSet(helper.Helper):
             ikey.add(*(InlineKeyboardButton(x[1], callback_data=set_callback(CallbackFuncs.ORDER_INFO, x[0])) for x in args))
         elif btn_set == cls.INL_ORDER_DELETE:
             ikey.add(InlineKeyboardButton('Удалить заказ', callback_data=set_callback(CallbackFuncs.ORDER_DELETE, args)))
+        elif btn_set == cls.INL_ORDER_SURVEY:
+            ikey.add(InlineKeyboardButton('Да', callback_data=set_callback(CallbackFuncs.ORDER_SURVEY, {'id': args, 'st': Order.FOUND})))
+            ikey.add(InlineKeyboardButton('Нет', callback_data=set_callback(CallbackFuncs.ORDER_SURVEY, {'id': args, 'st': Order.NOT_FOUND})))
+            ikey.add(InlineKeyboardButton('Заявка уже не актуальна', callback_data=set_callback(CallbackFuncs.ORDER_SURVEY, {'id': args, 'st': Order.CANCELED})))
         return key or ikey
 
 
@@ -250,8 +261,6 @@ def answer(message, text, reply_markup=None, pm=True, **kwargs):
                 del kwargs[t]
         try:
             func(message.chat.id, reply_markup=reply_markup, parse_mode='Markdown' if pm else None, **kwargs, **kw)
-        except Exception as e:
-            print(e)
         except ApiTelegramException:
             del kwargs[_type]
             misc.bot.send_message(message.chat.id, text, parse_mode='Markdown' if pm else None, **kwargs, **kw)
@@ -513,9 +522,12 @@ def bulk_mailing(order, data):
 def save_order(user):
     data = user.get_state_data()
     user.reset_state()
-    order = models.Order.objects.create(client=user, subcategory_id=data['sub_id'], location=Point(data['x'], data['y']),
-                                        date=datetime.fromtimestamp(data['date']), times=json.dumps(data['times']),
-                                        city=get_city(data['x'], data['y']))
+    try:
+        order = models.Order.objects.create(client=user, subcategory_id=data['sub_id'], location=Point(data['x'], data['y']),
+                                            date=datetime.fromtimestamp(data['date']), times=json.dumps(data['times']),
+                                            city=get_city(data['x'], data['y']))
+    except KeyError:
+        return misc.bot.send_message(user.user_id, user.text('save_order_error'), parse_mode='Markdown', reply_markup=ButtonSet(ButtonSet.CLIENT))
     misc.bot.send_message(user.user_id, user.text('order_created'), parse_mode='Markdown', reply_markup=ButtonSet(ButtonSet.CLIENT))
     bulk_mailing(order, data)
 

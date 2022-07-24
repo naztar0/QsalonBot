@@ -32,6 +32,14 @@ class Media(helper.HelperMode):
     VIDEO = helper.Item()
 
 
+class Order(helper.HelperMode):
+    mode = helper.HelperMode.SCREAMING_SNAKE_CASE
+    WAIT = helper.Item()
+    FOUND = helper.Item()
+    NOT_FOUND = helper.Item()
+    CANCELED = helper.Item()
+
+
 class MessageField(models.TextField):
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 4096

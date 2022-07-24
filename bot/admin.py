@@ -29,8 +29,8 @@ class StatsAdmin(admin.ModelAdmin):
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['created', 'user_id', 'username_custom', 'first_name', 'last_name', 'type', 'categories_custom',
-                    'portfolio', 'city', 'location_custom', 'balance', 'is_active_master', 'is_banned']
+    list_display = ['created', 'user_id', 'username_custom', 'first_name', 'last_name', 'type', 'phone_custom',
+                    'categories_custom', 'portfolio', 'city', 'location_custom', 'balance', 'is_active_master', 'is_banned']
     list_editable = ['is_banned', 'balance']
     list_filter = ['is_banned', 'type', 'is_active_master', 'categories__category', 'city', 'city__country']
     search_fields = ['user_id', 'username', 'first_name', 'last_name']
@@ -55,6 +55,13 @@ class UserAdmin(admin.ModelAdmin):
     def categories_custom(self, obj):
         return truncatewords(', '.join(x.title for x in obj.categories.all()), 5) or '-'
     categories_custom.short_description = 'Категории'
+
+    def phone_custom(self, obj):
+        if obj.phone:
+            return format_html(f'<a href="tel:{obj.phone}">{obj.phone}</a>')
+        else:
+            return '-'
+    phone_custom.short_description = 'Телефон'
 
     def has_add_permission(self, *args, **kwargs):
         return False
@@ -175,11 +182,11 @@ class SubcategoryAdmin(admin.ModelAdmin):
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['created', 'client_custom', 'master_custom', 'subcategory', 'city', 'date', 'times']
+    list_display = ['created', 'client_custom', 'master_custom', 'status', 'subcategory', 'city', 'date', 'times']
     list_per_page = 25
     date_hierarchy = 'created'
 
-    list_filter = ['city', 'subcategory__category']
+    list_filter = ['status', 'city', 'subcategory__category']
     search_fields = ['subcategory']
 
     def client_custom(self, obj):

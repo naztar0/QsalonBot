@@ -82,6 +82,19 @@ def distribute_state_location_handler(message: types.Message, user: models.User)
         state_funcs[user.state](message, user)
 
 
+@bot.message_handler(content_types=['contact'])
+@utils.user_handler
+def distribute_state_contact_handler(message: types.Message, user: models.User):
+    if not user.state:
+        main_text_handler(message, user)
+        return
+    state_funcs = {
+        utils.States.NEW_ORDER_CONTACT: client_contact,
+    }
+    if state_funcs.get(user.state):
+        state_funcs[user.state](message, user)
+
+
 @bot.callback_query_handler(lambda callback: True)
 @utils.user_handler
 def callback_handler(callback: types.CallbackQuery, user: models.User):
@@ -106,7 +119,8 @@ def callback_handler(callback: types.CallbackQuery, user: models.User):
         utils.CallbackFuncs.CLIENT_ACCEPT_ORDER: client_accept_order,
         utils.CallbackFuncs.ORDER_INFO: order_info,
         utils.CallbackFuncs.ORDER_DELETE: order_delete,
-        utils.CallbackFuncs.ORDER_REQUESTS_AMOUNT: order_requests_amount
+        utils.CallbackFuncs.ORDER_REQUESTS_AMOUNT: order_requests_amount,
+        utils.CallbackFuncs.ORDER_SURVEY: order_survey,
     }
     if callback_funcs.get(func):
         callback_funcs[func](callback.message, callback, user, data)
@@ -328,14 +342,27 @@ def client_location(message: types.Message, user: models.User):
 @utils.reset_state_checker('start_client', ButtonSet.CLIENT)
 def client_text_media(message: types.Message, user: models.User):
     if message.text == misc.next_button:
-        utils.save_order(user)
-    if message.text:
+        if user.phone:
+            utils.save_order(user)
+        else:
+            user.set_state(utils.States.NEW_ORDER_CONTACT)
+            answer(message, user.text('order_contact'), reply_markup=ButtonSet(ButtonSet.SEND_CONTACT))
+    elif message.text:
         if len(message.text) > 600:
             answer(message, user.text('text_too_long'))
             return
         user.update_state_data({'text': message.text})
     else:
         answer(message, user.text('unknown_action'))
+
+
+@utils.reset_state_checker('start_client', ButtonSet.CLIENT)
+def client_contact(message: types.Message, user: models.User):
+    if message.contact.user_id != message.chat.id:
+        return answer(message, user.text('contact_not_your'))
+    user.phone = message.contact.phone_number
+    user.save()
+    utils.save_order(user)
 
 
 @utils.logger_middleware(Log.REPLY_BUTTON)
@@ -501,6 +528,8 @@ def order_requests_amount(message: types.Message, callback: types.CallbackQuery,
 def master_accept_order(message: types.Message, callback: types.CallbackQuery, user: models.User, data):
     if user.balance == 0:
         return answer(message, user.text('master_no_balance'))
+    if not user.portfolio:
+        return answer(message, user.text('master_no_portfolio'))
     with suppress(ApiTelegramException):
         bot.edit_message_reply_markup(message.chat.id, message.message_id)
     try:
@@ -596,3 +625,18 @@ def order_delete(message: types.Message, callback: types.CallbackQuery, user: mo
             bot.send_message(order.client.user_id, order.master.text('master_deleted_order').format(master_id=user.user_id), parse_mode='Markdown')
     order.delete()
     answer(message, user.text('order_deleted'))
+
+
+# noinspection PyUnusedLocal
+@utils.logger_middleware(Log.INLINE_BUTTON, is_callback=True)
+def order_survey(message: types.Message, callback: types.CallbackQuery, user: models.User, data):
+    try:
+        order = models.Order.objects.get(id=data['id'])
+    except models.Order.DoesNotExist:
+        with suppress(ApiTelegramException):
+            bot.delete_message(message.chat.id, message.message_id)
+        return
+    order.status = data['st']
+    order.save()
+    with suppress(ApiTelegramException):
+        bot.delete_message(message.chat.id, message.message_id)
