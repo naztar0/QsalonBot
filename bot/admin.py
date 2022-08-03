@@ -1,4 +1,3 @@
-from json import loads
 from django.contrib import admin
 from django.db.models import Count, Q, QuerySet, Sum
 from django.utils.html import format_html
@@ -182,12 +181,12 @@ class SubcategoryAdmin(admin.ModelAdmin):
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['created', 'client_custom', 'master_custom', 'status', 'subcategory', 'city', 'date', 'times']
+    list_display = ['created', 'client_custom', 'master_custom', 'status', 'subcategory', 'city', 'location_custom', 'date', 'times']
     list_per_page = 25
     date_hierarchy = 'created'
 
-    list_filter = ['status', 'city', 'subcategory__category']
-    search_fields = ['subcategory']
+    list_filter = ['status', 'subcategory__category', 'subcategory', 'city']
+    search_fields = ['client__user_id', 'master__user_id']
 
     def client_custom(self, obj):
         if obj.client:
@@ -202,6 +201,13 @@ class OrderAdmin(admin.ModelAdmin):
         else:
             return '-'
     master_custom.short_description = 'Мастер'
+
+    def location_custom(self, obj):
+        if obj.location.x:
+            return format_html(f'<a href="https://maps.google.com/maps?q={obj.location.x},{obj.location.y}">{obj.location.x} {obj.location.y}</a>')
+        else:
+            return '-'
+    location_custom.short_description = 'Местоположение'
 
     def has_add_permission(self, *args, **kwargs):
         return False
@@ -218,7 +224,7 @@ class RequestAdmin(admin.ModelAdmin):
     list_per_page = 25
     date_hierarchy = 'created'
     list_filter = ['master__categories__category']
-    search_fields = ['order']
+    search_fields = ['order__client__user_id', 'master__user_id']
 
     def order_custom(self, obj):
         if obj.order:
